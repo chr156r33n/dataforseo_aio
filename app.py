@@ -24,7 +24,13 @@ if st.button("Search"):
     keyword_list = [keyword.strip() for keyword in keywords.split(";")]
     location_list = [int(location.strip()) for location in locations.split(";")]
 
-    tasks = []
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Basic {encoded_credentials}"
+    }
+
+    fetched_json_responses = []
+
     for keyword in keyword_list:
         for i in range(num_calls):
             task = {
@@ -35,64 +41,57 @@ if st.button("Search"):
                 "device": "desktop",
                 "os": "windows"
             }
-            tasks.append(task)
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Basic {encoded_credentials}"
-    }
+            payload = json.dumps([task])  # Convert single task to JSON array
 
-    payload = json.dumps(tasks)  # Convert tasks list to JSON array
-
-    if debug:
-        st.write(f"### Sending {len(tasks)} tasks to Data for SEO API")
-        st.write(f"Payload: {payload}")
-
-    try:
-        response = requests.post(url, data=payload, headers=headers)  # Send as JSON array
-        response.raise_for_status()  # Raise an error for bad status codes
-        results = response.json()
-        if debug:
-            st.write("### Response Summary")
-            st.write(f"Status Code: {response.status_code}")
-            st.write(f"Number of Tasks: {len(results.get('tasks', []))}")
-
-        fetched_json_responses = results
-
-        # Extract and display item_types and ai_overview
-        for task_result in results.get('tasks', []):
             if debug:
-                st.write(f"Task Result: {json.dumps(task_result, indent=4)}")
-            result = task_result.get('result', [{}])[0] if task_result.get('result') else {}
-            item_types = result.get('item_types', [])
-            st.write(f"Item Types for Task ID {task_result.get('id')}: {item_types}")
+                st.write(f"### Sending task to Data for SEO API")
+                st.write(f"Payload: {payload}")
 
-            # Check if "ai_overview" is in item_types
-            if "ai_overview" in item_types:
-                items = result.get('items', [])
-                for item in items:
-                    if item.get('type') == 'ai_overview':
-                        if debug:
-                            st.write(f"Full AI Overview Item: {json.dumps(item, indent=4)}")
-                        # Extract relevant fields
-                        ai_overview_content = {
-                            "title": item.get("title"),
-                            "url": item.get("url"),
-                            "source": item.get("source"),
-                            "text": item.get("text")
-                        }
-                        # Convert to string and display
-                        ai_overview_str = json.dumps(ai_overview_content, indent=4)
-                        st.write(f"AI Overview for Task ID {task_result.get('id')}: {ai_overview_str}")
-                        break  # Stop after finding the first ai_overview
+            try:
+                response = requests.post(url, data=payload, headers=headers)  # Send as JSON array
+                response.raise_for_status()  # Raise an error for bad status codes
+                result = response.json()
+                fetched_json_responses.append(result)
+                if debug:
+                    st.write("### Response Summary")
+                    st.write(f"Status Code: {response.status_code}")
+                    st.write(f"Response: {json.dumps(result, indent=4)}")
 
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error: {e}")
-    except (IndexError, KeyError, TypeError) as e:
-        st.error(f"Unexpected response structure: {e}")
-        if debug:
-            st.write("### Error Details")
-            st.write(f"Response: {results}")
+                # Extract and display item_types and ai_overview
+                for task_result in result.get('tasks', []):
+                    if debug:
+                        st.write(f"Task Result: {json.dumps(task_result, indent=4)}")
+                    result_data = task_result.get('result', [{}])[0] if task_result.get('result') else {}
+                    item_types = result_data.get('item_types', [])
+                    st.write(f"Item Types for Task ID {task_result.get('id')}: {item_types}")
+
+                    # Check if "ai_overview" is in item_types
+                    if "ai_overview" in item_types:
+                        items = result_data.get('items', [])
+                        for item in items:
+                            if item.get('type') == 'ai_overview':
+                                if debug:
+                                    st.write(f"Full AI Overview Item: {json.dumps(item, indent=4)}")
+                                # Extract relevant fields
+                                ai_overview_content = {
+                                    "title": item.get("title"),
+                                    "url": item.get("url"),
+                                    "source": item.get("source"),
+                                    "text": item.get("text")
+                                }
+                                # Convert to string and display
+                                ai_overview_str = json.dumps(ai_overview_content, indent=4)
+                                st.write(f"AI Overview for Task ID {task_result.get('id')}: {ai_overview_str}")
+                                break  # Stop after finding the first ai_overview
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"Error: {e}")
+            except (IndexError, KeyError, TypeError) as e:
+                st.error(f"Unexpected response structure: {e}")
+                if debug:
+                    st.write("### Error Details")
+                    st.write(f"Response: {result}")
 
     # Provide a link to download the full JSON response
     if download_json and fetched_json_responses:
