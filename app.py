@@ -5,7 +5,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 import base64
 
-st.title("Google Search API with Data for SEO")
+st.title("AIO Search Checker (DataforSEO)")
 
 keywords = st.text_area("Keywords (semicolon-separated)", "bora bora; maldives; hawaii")
 locations = st.text_area("Locations (semicolon-separated)", "Austin, Texas, United States; New York, New York, United States; San Francisco, California, United States")
