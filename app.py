@@ -77,12 +77,10 @@ if st.button("Search"):
             for item in items:
                 if item.get('type') == 'ai_overview':
                     ai_overview = item.get('text')
+                    ai_overviews.append(str(ai_overview))  # Append the ai_overview text
                     break  # Stop processing further items once ai_overview is found
 
-            if ai_overview:
-                # Convert ai_overview to string
-                ai_overviews.append(str(ai_overview))
-            else:
+            if not ai_overview:
                 no_ai_overview_indices.append(task_result.get('id'))
 
     except requests.exceptions.RequestException as e:
