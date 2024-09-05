@@ -28,14 +28,13 @@ if st.button("Search"):
     location_list = [location.strip() for location in locations.split(";")]
 
     combined_similarity_data = []
-    raw_html_files = []
 
     for keyword in keyword_list:
         if debug:
             st.write(f"## Processing Keyword: {keyword}")
         all_results = []
-        answer_boxes = []
-        no_answer_box_indices = []
+        ai_overviews = []
+        no_ai_overview_indices = []
         for i in range(num_calls):
             params = {
                 "keyword": keyword,
@@ -60,31 +59,34 @@ if st.button("Search"):
                 response = requests.post(url, json=params, headers=headers)
                 response.raise_for_status()  # Raise an error for bad status codes
                 results = response.json()
+                if debug:
+                    st.write(f"Response: {results}")
+
                 all_results.append(results)
-                answer_box = results.get('tasks', [{}])[0].get('result', [{}])[0].get('answer_box')
-                raw_html_file = results.get('tasks', [{}])[0].get('result', [{}])[0].get('search_metadata', {}).get('raw_html_file')
-                if raw_html_file:
-                    raw_html_files.append({
-                        "keyword": keyword,
-                        "location": location_list[i % len(location_list)],
-                        "raw_html_file": raw_html_file
-                    })
-                if answer_box:
-                    # Convert answer_box to string
-                    answer_boxes.append(str(answer_box))
+                task_result = results.get('tasks', [{}])[0].get('result', [{}])[0]
+                items = task_result.get('items', [])
+                ai_overview = None
+                for item in items:
+                    if item.get('type') == 'ai_overview':
+                        ai_overview = item.get('text')
+                        break
+
+                if ai_overview:
+                    # Convert ai_overview to string
+                    ai_overviews.append(str(ai_overview))
                 else:
-                    no_answer_box_indices.append(i + 1)
+                    no_ai_overview_indices.append(i + 1)
             except requests.exceptions.RequestException as e:
                 st.error(f"Error: {e}")
                 break
 
-        if answer_boxes:
-            st.write("### Answer Boxes")
-            for idx, answer_box in enumerate(answer_boxes):
-                st.write(f"**Answer Box {idx + 1}:** {answer_box}\n")
+        if ai_overviews:
+            st.write("### AI Overviews")
+            for idx, ai_overview in enumerate(ai_overviews):
+                st.write(f"**AI Overview {idx + 1}:** {ai_overview}\n")
 
             # Compute similarity
-            vectorizer = TfidfVectorizer().fit_transform(answer_boxes)
+            vectorizer = TfidfVectorizer().fit_transform(ai_overviews)
             vectors = vectorizer.toarray()
             cosine_matrix = cosine_similarity(vectors)
 
@@ -99,11 +101,11 @@ if st.button("Search"):
                     **{f"similarity_{col_idx + 1}": value for col_idx, value in enumerate(row)}
                 })
         else:
-            st.write("No answer boxes found in the results.")
+            st.write("No AI overviews found in the results.")
 
-        if no_answer_box_indices:
-            st.write("### Requests with No Answer Box")
-            st.write(f"No answer box found in the following requests: {no_answer_box_indices}")
+        if no_ai_overview_indices:
+            st.write("### Requests with No AI Overview")
+            st.write(f"No AI overview found in the following requests: {no_ai_overview_indices}")
 
     # Export combined similarity matrix
     if combined_similarity_data:
@@ -113,20 +115,5 @@ if st.button("Search"):
             label="Download Combined Similarity Matrix as CSV",
             data=csv_similarity,
             file_name='combined_similarity_matrix.csv',
-            mime='text/csv',
-        )
-
-    # Display and export raw HTML files
-    if raw_html_files:
-        st.write("### Raw HTML Files")
-        for entry in raw_html_files:
-            st.write(f"Keyword: {entry['keyword']}, Location: {entry['location']}, [Raw HTML File]({entry['raw_html_file']})")
-
-        df_raw_html = pd.DataFrame(raw_html_files)
-        csv_raw_html = df_raw_html.to_csv(index=False)
-        st.download_button(
-            label="Download Raw HTML Files as CSV",
-            data=csv_raw_html,
-            file_name='raw_html_files.csv',
             mime='text/csv',
         )
