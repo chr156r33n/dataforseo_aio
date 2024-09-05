@@ -9,10 +9,9 @@ import json
 st.title("Google Search API with Data for SEO")
 
 keywords = st.text_area("Keywords (semicolon-separated)", "bora bora; maldives; hawaii")
-locations = st.text_area("Locations (semicolon-separated)", "Austin, Texas, United States; New York, New York, United States; San Francisco, California, United States")
+locations = st.text_area("Locations (semicolon-separated)", "2840; 21167; 1012820")  # Example location codes
 google_domain = st.text_input("Google Domain", "google.com")
-gl = st.text_input("GL", "us")
-hl = st.text_input("HL", "en")
+language_code = st.text_input("Language Code", "en")
 no_cache = st.checkbox("No Cache", True)
 email = st.text_input("Email", "your_email@example.com")
 password = st.text_input("Password", "your_password", type="password")
@@ -27,7 +26,7 @@ if st.button("Search"):
 
     url = "https://api.dataforseo.com/v3/serp/google/organic/live/advanced"
     keyword_list = [keyword.strip() for keyword in keywords.split(";")]
-    location_list = [location.strip() for location in locations.split(";")]
+    location_list = [int(location.strip()) for location in locations.split(";")]
 
     combined_similarity_data = []
     fetched_json_responses = []
@@ -39,10 +38,9 @@ if st.button("Search"):
         for i in range(num_calls):
             task = {
                 "keyword": keyword,
-                "location_name": location_list[i % len(location_list)],  # Rotate through location values
+                "location_code": location_list[i % len(location_list)],  # Rotate through location values
+                "language_code": language_code,
                 "google_domain": google_domain,
-                "gl": gl,
-                "hl": hl,
                 "device": "desktop",
                 "os": "windows"
             }
