@@ -67,7 +67,16 @@ if st.button("Search"):
                 items = result.get('items', [])
                 for item in items:
                     if item.get('type') == 'ai_overview':
-                        st.write(f"AI Overview for Task ID {task_result.get('id')}: {item}")
+                        # Extract relevant fields
+                        ai_overview_content = {
+                            "title": item.get("title"),
+                            "url": item.get("url"),
+                            "source": item.get("source"),
+                            "text": item.get("text")
+                        }
+                        # Convert to string and display
+                        ai_overview_str = json.dumps(ai_overview_content, indent=4)
+                        st.write(f"AI Overview for Task ID {task_result.get('id')}: {ai_overview_str}")
                         break  # Stop after finding the first ai_overview
 
     except requests.exceptions.RequestException as e:
