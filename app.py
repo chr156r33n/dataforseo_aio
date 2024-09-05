@@ -4,6 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 import base64
+import json
 
 st.title("Google Search API with Data for SEO")
 
@@ -17,6 +18,7 @@ email = st.text_input("Email", "your_email@example.com")
 password = st.text_input("Password", "your_password", type="password")
 num_calls = st.number_input("Number of API Calls per Keyword", min_value=1, max_value=10, value=1)
 debug = st.checkbox("Enable Debugging", False)
+download_json = st.checkbox("Download Fetched JSON", False)
 
 if st.button("Search"):
     # Encode email and password in Base64
@@ -28,6 +30,7 @@ if st.button("Search"):
     location_list = [location.strip() for location in locations.split(";")]
 
     combined_similarity_data = []
+    fetched_json_responses = []
 
     for keyword in keyword_list:
         if debug:
@@ -63,7 +66,8 @@ if st.button("Search"):
                     st.write(f"Response: {results}")
 
                 all_results.append(results)
-                task_result = results.get('tasks', [{}])[0].get('result', [{}])[0]
+                fetched_json_responses.append(results)
+                task_result = results.get('tasks', [{}])[0].get('result', [{}])[0] if results.get('tasks') else {}
                 items = task_result.get('items', [])
                 ai_overview = None
                 for item in items:
@@ -78,6 +82,11 @@ if st.button("Search"):
                     no_ai_overview_indices.append(i + 1)
             except requests.exceptions.RequestException as e:
                 st.error(f"Error: {e}")
+                break
+            except (IndexError, KeyError, TypeError) as e:
+                st.error(f"Unexpected response structure: {e}")
+                if debug:
+                    st.write(f"Response: {results}")
                 break
 
         if ai_overviews:
@@ -116,4 +125,14 @@ if st.button("Search"):
             data=csv_similarity,
             file_name='combined_similarity_matrix.csv',
             mime='text/csv',
+        )
+
+    # Export fetched JSON responses
+    if download_json and fetched_json_responses:
+        json_data = json.dumps(fetched_json_responses, indent=4)
+        st.download_button(
+            label="Download Fetched JSON Responses",
+            data=json_data,
+            file_name='fetched_json_responses.json',
+            mime='application/json',
         )
