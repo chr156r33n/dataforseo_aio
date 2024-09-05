@@ -3,6 +3,7 @@ import requests
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
+import base64
 
 st.title("Google Search API with Data for SEO")
 
@@ -12,10 +13,15 @@ google_domain = st.text_input("Google Domain", "google.com")
 gl = st.text_input("GL", "us")
 hl = st.text_input("HL", "en")
 no_cache = st.checkbox("No Cache", True)
-api_key = st.text_input("API Key", "secret_api_key", type="password")
+email = st.text_input("Email", "your_email@example.com")
+password = st.text_input("Password", "your_password", type="password")
 num_calls = st.number_input("Number of API Calls per Keyword", min_value=1, max_value=10, value=1)
 
 if st.button("Search"):
+    # Encode email and password in Base64
+    credentials = f"{email}:{password}"
+    encoded_credentials = base64.b64encode(credentials.encode()).decode()
+
     url = "https://api.dataforseo.com/v3/serp/google/organic/live/advanced"
     keyword_list = [keyword.strip() for keyword in keywords.split(";")]
     location_list = [location.strip() for location in locations.split(";")]
@@ -41,7 +47,7 @@ if st.button("Search"):
 
             headers = {
                 "Content-Type": "application/json",
-                "Authorization": f"Basic {api_key}"
+                "Authorization": f"Basic {encoded_credentials}"
             }
 
             try:
