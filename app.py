@@ -31,6 +31,8 @@ if st.button("Search"):
 
     combined_similarity_data = []
     fetched_json_responses = []
+    ai_overviews = []
+    no_ai_overview_indices = []
 
     tasks = []
     for keyword in keyword_list:
@@ -56,7 +58,7 @@ if st.button("Search"):
         st.write(f"Tasks: {tasks}")
 
     try:
-        response = requests.post(url, json=tasks, headers=headers)  # Send as an array of tasks
+        response = requests.post(url, json={"data": tasks}, headers=headers)  # Send as an array of tasks
         response.raise_for_status()  # Raise an error for bad status codes
         results = response.json()
         if debug:
@@ -65,7 +67,7 @@ if st.button("Search"):
         fetched_json_responses.append(results)
 
         for task_result in results.get('tasks', []):
-            result = task_result.get('result', [{}])[0]
+            result = task_result.get('result', [{}])[0] if task_result.get('result') else {}
             items = result.get('items', [])
             ai_overview = None
             for item in items:
