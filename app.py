@@ -32,12 +32,8 @@ if st.button("Search"):
     combined_similarity_data = []
     fetched_json_responses = []
 
+    tasks = []
     for keyword in keyword_list:
-        if debug:
-            st.write(f"## Processing Keyword: {keyword}")
-        all_results = []
-        ai_overviews = []
-        no_ai_overview_indices = []
         for i in range(num_calls):
             task = {
                 "keyword": keyword,
@@ -48,73 +44,74 @@ if st.button("Search"):
                 "device": "desktop",
                 "os": "windows"
             }
+            tasks.append(task)
 
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Basic {encoded_credentials}"
-            }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Basic {encoded_credentials}"
+    }
 
-            if debug:
-                st.write(f"### API Call {i + 1} for Keyword: {keyword}")
-                st.write(f"Task: {task}")
+    if debug:
+        st.write(f"### Sending {len(tasks)} tasks to Data for SEO API")
+        st.write(f"Tasks: {tasks}")
 
-            try:
-                response = requests.post(url, json=[task], headers=headers)  # Send as an array of tasks
-                response.raise_for_status()  # Raise an error for bad status codes
-                results = response.json()
-                if debug:
-                    st.write(f"Response: {results}")
+    try:
+        response = requests.post(url, json=tasks, headers=headers)  # Send as an array of tasks
+        response.raise_for_status()  # Raise an error for bad status codes
+        results = response.json()
+        if debug:
+            st.write(f"Response: {results}")
 
-                all_results.append(results)
-                fetched_json_responses.append(results)
-                task_result = results.get('tasks', [{}])[0].get('result', [{}])[0] if results.get('tasks') else {}
-                items = task_result.get('items', [])
-                ai_overview = None
-                for item in items:
-                    if item.get('type') == 'ai_overview':
-                        ai_overview = item.get('text')
-                        break
+        fetched_json_responses.append(results)
 
-                if ai_overview:
-                    # Convert ai_overview to string
-                    ai_overviews.append(str(ai_overview))
-                else:
-                    no_ai_overview_indices.append(i + 1)
-            except requests.exceptions.RequestException as e:
-                st.error(f"Error: {e}")
-                break
-            except (IndexError, KeyError, TypeError) as e:
-                st.error(f"Unexpected response structure: {e}")
-                if debug:
-                    st.write(f"Response: {results}")
-                break
+        for task_result in results.get('tasks', []):
+            result = task_result.get('result', [{}])[0]
+            items = result.get('items', [])
+            ai_overview = None
+            for item in items:
+                if item.get('type') == 'ai_overview':
+                    ai_overview = item.get('text')
+                    break
 
-        if ai_overviews:
-            st.write("### AI Overviews")
-            for idx, ai_overview in enumerate(ai_overviews):
-                st.write(f"**AI Overview {idx + 1}:** {ai_overview}\n")
+            if ai_overview:
+                # Convert ai_overview to string
+                ai_overviews.append(str(ai_overview))
+            else:
+                no_ai_overview_indices.append(task_result.get('id'))
 
-            # Compute similarity
-            vectorizer = TfidfVectorizer().fit_transform(ai_overviews)
-            vectors = vectorizer.toarray()
-            cosine_matrix = cosine_similarity(vectors)
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error: {e}")
+    except (IndexError, KeyError, TypeError) as e:
+        st.error(f"Unexpected response structure: {e}")
+        if debug:
+            st.write(f"Response: {results}")
 
-            st.write("### Similarity Matrix")
-            st.write(cosine_matrix)
+    if ai_overviews:
+        st.write("### AI Overviews")
+        for idx, ai_overview in enumerate(ai_overviews):
+            st.write(f"**AI Overview {idx + 1}:** {ai_overview}\n")
 
-            # Combine similarity data
-            for row_idx, row in enumerate(cosine_matrix):
-                combined_similarity_data.append({
-                    "keyword": keyword,
-                    "location": location_list[row_idx % len(location_list)],
-                    **{f"similarity_{col_idx + 1}": value for col_idx, value in enumerate(row)}
-                })
-        else:
-            st.write("No AI overviews found in the results.")
+        # Compute similarity
+        vectorizer = TfidfVectorizer().fit_transform(ai_overviews)
+        vectors = vectorizer.toarray()
+        cosine_matrix = cosine_similarity(vectors)
 
-        if no_ai_overview_indices:
-            st.write("### Requests with No AI Overview")
-            st.write(f"No AI overview found in the following requests: {no_ai_overview_indices}")
+        st.write("### Similarity Matrix")
+        st.write(cosine_matrix)
+
+        # Combine similarity data
+        for row_idx, row in enumerate(cosine_matrix):
+            combined_similarity_data.append({
+                "keyword": keyword,
+                "location": location_list[row_idx % len(location_list)],
+                **{f"similarity_{col_idx + 1}": value for col_idx, value in enumerate(row)}
+            })
+    else:
+        st.write("No AI overviews found in the results.")
+
+    if no_ai_overview_indices:
+        st.write("### Requests with No AI Overview")
+        st.write(f"No AI overview found in the following requests: {no_ai_overview_indices}")
 
     # Export combined similarity matrix
     if combined_similarity_data:
