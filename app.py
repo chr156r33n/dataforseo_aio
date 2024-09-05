@@ -61,6 +61,8 @@ if st.button("Search"):
 
         # Extract and display item_types and ai_overview
         for task_result in results.get('tasks', []):
+            if debug:
+                st.write(f"Task Result: {json.dumps(task_result, indent=4)}")
             result = task_result.get('result', [{}])[0] if task_result.get('result') else {}
             item_types = result.get('item_types', [])
             st.write(f"Item Types for Task ID {task_result.get('id')}: {item_types}")
