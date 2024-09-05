@@ -5,7 +5,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 import base64
 
-st.title("AIO Search Checker (DataforSEO)")
+st.title("Google Search API with Data for SEO")
 
 keywords = st.text_area("Keywords (semicolon-separated)", "bora bora; maldives; hawaii")
 locations = st.text_area("Locations (semicolon-separated)", "Austin, Texas, United States; New York, New York, United States; San Francisco, California, United States")
@@ -16,6 +16,7 @@ no_cache = st.checkbox("No Cache", True)
 email = st.text_input("Email", "your_email@example.com")
 password = st.text_input("Password", "your_password", type="password")
 num_calls = st.number_input("Number of API Calls per Keyword", min_value=1, max_value=10, value=1)
+debug = st.checkbox("Enable Debugging", False)
 
 if st.button("Search"):
     # Encode email and password in Base64
@@ -30,7 +31,8 @@ if st.button("Search"):
     raw_html_files = []
 
     for keyword in keyword_list:
-        st.write(f"## Results for Keyword: {keyword}")
+        if debug:
+            st.write(f"## Processing Keyword: {keyword}")
         all_results = []
         answer_boxes = []
         no_answer_box_indices = []
@@ -49,6 +51,10 @@ if st.button("Search"):
                 "Content-Type": "application/json",
                 "Authorization": f"Basic {encoded_credentials}"
             }
+
+            if debug:
+                st.write(f"### API Call {i + 1} for Keyword: {keyword}")
+                st.write(f"Params: {params}")
 
             try:
                 response = requests.post(url, json=params, headers=headers)
