@@ -13,6 +13,7 @@ email = st.text_input("Email", "your_email@example.com")
 password = st.text_input("Password", "your_password", type="password")
 num_calls = st.number_input("Number of API Calls per Keyword", min_value=1, max_value=10, value=1)
 debug = st.checkbox("Enable Debugging", False)
+download_json = st.checkbox("Download Fetched JSON", False)
 
 if st.button("Search"):
     # Encode email and password in Base64
@@ -56,6 +57,8 @@ if st.button("Search"):
             st.write(f"Status Code: {response.status_code}")
             st.write(f"Number of Tasks: {len(results.get('tasks', []))}")
 
+        fetched_json_responses = results
+
         # Extract and display item_types and ai_overview
         for task_result in results.get('tasks', []):
             result = task_result.get('result', [{}])[0] if task_result.get('result') else {}
@@ -67,6 +70,8 @@ if st.button("Search"):
                 items = result.get('items', [])
                 for item in items:
                     if item.get('type') == 'ai_overview':
+                        if debug:
+                            st.write(f"Full AI Overview Item: {json.dumps(item, indent=4)}")
                         # Extract relevant fields
                         ai_overview_content = {
                             "title": item.get("title"),
@@ -86,3 +91,13 @@ if st.button("Search"):
         if debug:
             st.write("### Error Details")
             st.write(f"Response: {results}")
+
+    # Provide a link to download the full JSON response
+    if download_json and fetched_json_responses:
+        json_data = json.dumps(fetched_json_responses, indent=4)
+        st.download_button(
+            label="Download Fetched JSON Responses",
+            data=json_data,
+            file_name='fetched_json_responses.json',
+            mime='application/json',
+        )
