@@ -77,7 +77,7 @@ if st.button("Search"):
             for item in items:
                 if item.get('type') == 'ai_overview':
                     ai_overview = item.get('text')
-                    break
+                    break  # Stop processing further items once ai_overview is found
 
             if ai_overview:
                 # Convert ai_overview to string
