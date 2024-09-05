@@ -58,17 +58,17 @@ if st.button("Search"):
 
         # Extract and display item_types and ai_overview
         for task_result in results.get('tasks', []):
-            result = task_result.get('result', [{}])[0] if task_result.get('result') else {}
-            item_types = result.get('item_types', [])
-            st.write(f"Item Types for Task ID {task_result.get('id')}: {item_types}")
+            for result in task_result.get('result', []):  # Iterate through all results
+                item_types = result.get('item_types', [])
+                st.write(f"Item Types for Task ID {task_result.get('id')}: {item_types}")
 
-            # Check if "ai_overview" is in item_types
-            if "ai_overview" in item_types:
-                items = result.get('items', [])
-                for item in items:
-                    if item.get('type') == 'ai_overview':
-                        st.write(f"AI Overview for Task ID {task_result.get('id')}: {item}")
-                        break  # Stop after finding the first ai_overview
+                # Check if "ai_overview" is in item_types
+                if "ai_overview" in item_types:
+                    items = result.get('items', [])
+                    for item in items:
+                        if item.get('type') == 'ai_overview':
+                            st.write(f"AI Overview for Task ID {task_result.get('id')}: {item}")
+                            break  # Stop after finding the first ai_overview
 
     except requests.exceptions.RequestException as e:
         st.error(f"Error: {e}")
