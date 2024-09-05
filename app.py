@@ -62,7 +62,7 @@ if st.button("Search"):
         response.raise_for_status()  # Raise an error for bad status codes
         results = response.json()
         if debug:
-            st.write(f"Response: {results}")
+            st.write(f"Response: {json.dumps(results, indent=4)}")
 
         fetched_json_responses.append(results)
 
@@ -86,7 +86,7 @@ if st.button("Search"):
     except (IndexError, KeyError, TypeError) as e:
         st.error(f"Unexpected response structure: {e}")
         if debug:
-            st.write(f"Response: {results}")
+            st.write(f"Response: {json.dumps(results, indent=4)}")
 
     if ai_overviews:
         st.write("### AI Overviews")
