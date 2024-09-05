@@ -62,13 +62,17 @@ if st.button("Search"):
         response.raise_for_status()  # Raise an error for bad status codes
         results = response.json()
         if debug:
-            st.write(f"Response: {json.dumps(results, indent=4)}")
+            st.write("### Response Summary")
+            st.write(f"Status Code: {response.status_code}")
+            st.write(f"Number of Tasks: {len(results.get('tasks', []))}")
 
         fetched_json_responses.append(results)
 
         for task_result in results.get('tasks', []):
             result = task_result.get('result', [{}])[0] if task_result.get('result') else {}
             items = result.get('items', [])
+            if debug:
+                st.write(f"Items for Task ID {task_result.get('id')}: {json.dumps(items, indent=4)}")
             ai_overview = None
             for item in items:
                 if item.get('type') == 'ai_overview':
@@ -86,7 +90,8 @@ if st.button("Search"):
     except (IndexError, KeyError, TypeError) as e:
         st.error(f"Unexpected response structure: {e}")
         if debug:
-            st.write(f"Response: {json.dumps(results, indent=4)}")
+            st.write("### Error Details")
+            st.write(f"Response: {results}")
 
     if ai_overviews:
         st.write("### AI Overviews")
