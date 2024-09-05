@@ -6,7 +6,7 @@ import json
 st.title("Google Search API with Data for SEO")
 
 keywords = st.text_area("Keywords (semicolon-separated)", "bora bora; maldives; hawaii")
-locations = st.text_area("Locations (semicolon-separated)", "21133; 21135; 21136; 21137; 21138; 21139; 21140")  # Example location codes
+locations = st.text_area("Locations (semicolon-separated)", "2840; 21167; 1012820; 21133; 21135; 21136; 21137; 21138; 21139; 21140")  # Updated location codes
 google_domain = st.text_input("Google Domain", "google.com")
 language_code = st.text_input("Language Code", "en")
 email = st.text_input("Email", "your_email@example.com")
