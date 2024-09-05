@@ -6,14 +6,13 @@ import json
 st.title("Google Search API with Data for SEO")
 
 keywords = st.text_area("Keywords (semicolon-separated)", "bora bora; maldives; hawaii")
-locations = st.text_area("Locations (semicolon-separated)", "2840; 21167; 1012820; 21133; 21135; 21136; 21137; 21138; 21139; 21140")  # Updated location codes
+locations = st.text_area("Locations (semicolon-separated)", "2840; 21167; 1012820")  # Example location codes
 google_domain = st.text_input("Google Domain", "google.com")
 language_code = st.text_input("Language Code", "en")
 email = st.text_input("Email", "your_email@example.com")
 password = st.text_input("Password", "your_password", type="password")
 num_calls = st.number_input("Number of API Calls per Keyword", min_value=1, max_value=10, value=1)
 debug = st.checkbox("Enable Debugging", False)
-download_json = st.checkbox("Download Fetched JSON", False)
 
 if st.button("Search"):
     # Encode email and password in Base64
@@ -24,13 +23,7 @@ if st.button("Search"):
     keyword_list = [keyword.strip() for keyword in keywords.split(";")]
     location_list = [int(location.strip()) for location in locations.split(";")]
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Basic {encoded_credentials}"
-    }
-
-    fetched_json_responses = []
-
+    tasks = []
     for keyword in keyword_list:
         for i in range(num_calls):
             task = {
@@ -41,64 +34,46 @@ if st.button("Search"):
                 "device": "desktop",
                 "os": "windows"
             }
+            tasks.append(task)
 
-            payload = json.dumps([task])  # Convert single task to JSON array
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Basic {encoded_credentials}"
+    }
 
-            if debug:
-                st.write(f"### Sending task to Data for SEO API")
-                st.write(f"Payload: {payload}")
+    payload = json.dumps(tasks)  # Convert tasks list to JSON array
 
-            try:
-                response = requests.post(url, data=payload, headers=headers)  # Send as JSON array
-                response.raise_for_status()  # Raise an error for bad status codes
-                result = response.json()
-                fetched_json_responses.append(result)
-                if debug:
-                    st.write("### Response Summary")
-                    st.write(f"Status Code: {response.status_code}")
-                    st.write(f"Response: {json.dumps(result, indent=4)}")
+    if debug:
+        st.write(f"### Sending {len(tasks)} tasks to Data for SEO API")
+        st.write(f"Payload: {payload}")
 
-                # Extract and display item_types and ai_overview
-                for task_result in result.get('tasks', []):
-                    if debug:
-                        st.write(f"Task Result: {json.dumps(task_result, indent=4)}")
-                    result_data = task_result.get('result', [{}])[0] if task_result.get('result') else {}
-                    item_types = result_data.get('item_types', [])
-                    st.write(f"Item Types for Task ID {task_result.get('id')}: {item_types}")
+    try:
+        response = requests.post(url, data=payload, headers=headers)  # Send as JSON array
+        response.raise_for_status()  # Raise an error for bad status codes
+        results = response.json()
+        if debug:
+            st.write("### Response Summary")
+            st.write(f"Status Code: {response.status_code}")
+            st.write(f"Number of Tasks: {len(results.get('tasks', []))}")
 
-                    # Check if "ai_overview" is in item_types
-                    if "ai_overview" in item_types:
-                        items = result_data.get('items', [])
-                        for item in items:
-                            if item.get('type') == 'ai_overview':
-                                if debug:
-                                    st.write(f"Full AI Overview Item: {json.dumps(item, indent=4)}")
-                                # Extract relevant fields
-                                ai_overview_content = {
-                                    "title": item.get("title"),
-                                    "url": item.get("url"),
-                                    "source": item.get("source"),
-                                    "text": item.get("text")
-                                }
-                                # Convert to string and display
-                                ai_overview_str = json.dumps(ai_overview_content, indent=4)
-                                st.write(f"AI Overview for Task ID {task_result.get('id')}: {ai_overview_str}")
-                                break  # Stop after finding the first ai_overview
+        # Extract and display item_types and ai_overview
+        for task_result in results.get('tasks', []):
+            result = task_result.get('result', [{}])[0] if task_result.get('result') else {}
+            item_types = result.get('item_types', [])
+            st.write(f"Item Types for Task ID {task_result.get('id')}: {item_types}")
 
-            except requests.exceptions.RequestException as e:
-                st.error(f"Error: {e}")
-            except (IndexError, KeyError, TypeError) as e:
-                st.error(f"Unexpected response structure: {e}")
-                if debug:
-                    st.write("### Error Details")
-                    st.write(f"Response: {result}")
+            # Check if "ai_overview" is in item_types
+            if "ai_overview" in item_types:
+                items = result.get('items', [])
+                for item in items:
+                    if item.get('type') == 'ai_overview':
+                        st.write(f"AI Overview for Task ID {task_result.get('id')}: {item}")
+                        break  # Stop after finding the first ai_overview
 
-    # Provide a link to download the full JSON response
-    if download_json and fetched_json_responses:
-        json_data = json.dumps(fetched_json_responses, indent=4)
-        st.download_button(
-            label="Download Fetched JSON Responses",
-            data=json_data,
-            file_name='fetched_json_responses.json',
-            mime='application/json',
-        )
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error: {e}")
+    except (IndexError, KeyError, TypeError) as e:
+        st.error(f"Unexpected response structure: {e}")
+        if debug:
+            st.write("### Error Details")
+            st.write(f"Response: {results}")
