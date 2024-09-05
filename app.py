@@ -39,7 +39,7 @@ if st.button("Search"):
         ai_overviews = []
         no_ai_overview_indices = []
         for i in range(num_calls):
-            params = {
+            task = {
                 "keyword": keyword,
                 "location_name": location_list[i % len(location_list)],  # Rotate through location values
                 "google_domain": google_domain,
@@ -56,10 +56,10 @@ if st.button("Search"):
 
             if debug:
                 st.write(f"### API Call {i + 1} for Keyword: {keyword}")
-                st.write(f"Params: {params}")
+                st.write(f"Task: {task}")
 
             try:
-                response = requests.post(url, json=params, headers=headers)
+                response = requests.post(url, json=[task], headers=headers)  # Send as an array of tasks
                 response.raise_for_status()  # Raise an error for bad status codes
                 results = response.json()
                 if debug:
