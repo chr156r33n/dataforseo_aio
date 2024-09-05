@@ -53,12 +53,14 @@ if st.button("Search"):
         "Authorization": f"Basic {encoded_credentials}"
     }
 
+    payload = json.dumps(tasks)  # Convert tasks list to JSON array
+
     if debug:
         st.write(f"### Sending {len(tasks)} tasks to Data for SEO API")
-        st.write(f"Tasks: {tasks}")
+        st.write(f"Payload: {payload}")
 
     try:
-        response = requests.post(url, json={"data": tasks}, headers=headers)  # Send as an array of tasks
+        response = requests.post(url, data=payload, headers=headers)  # Send as JSON array
         response.raise_for_status()  # Raise an error for bad status codes
         results = response.json()
         if debug:
