@@ -2,3 +2,4 @@ streamlit
 requests
 scikit-learn
 pandas
+base64
