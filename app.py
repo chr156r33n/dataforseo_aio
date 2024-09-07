@@ -124,7 +124,7 @@ if st.button("Search"):
 
             # Compute similarity
             ai_overview_texts = [item["content"]["text"] for item in ai_overview_items if item["content"]["text"]]
-            if ai_overview_texts:
+            if len(ai_overview_texts) > 1:
                 try:
                     vectorizer = TfidfVectorizer().fit_transform(ai_overview_texts)
                     vectors = vectorizer.toarray()
@@ -143,7 +143,7 @@ if st.button("Search"):
                 except ValueError as e:
                     st.error(f"Error computing similarity: {e}")
             else:
-                st.write("No valid AI overview texts found for similarity computation.")
+                st.write("Not enough AI overview texts found for similarity computation. At least two are required.")
         else:
             st.write("No AI overview items found in the results.")
 
