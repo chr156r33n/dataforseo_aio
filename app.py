@@ -120,20 +120,23 @@ if st.button("Search"):
 
             # Compute similarity
             ai_overview_texts = [item["text"] for item in ai_overview_items if item["text"]]
-            vectorizer = TfidfVectorizer().fit_transform(ai_overview_texts)
-            vectors = vectorizer.toarray()
-            cosine_matrix = cosine_similarity(vectors)
+            if ai_overview_texts:
+                vectorizer = TfidfVectorizer().fit_transform(ai_overview_texts)
+                vectors = vectorizer.toarray()
+                cosine_matrix = cosine_similarity(vectors)
 
-            st.write("### Similarity Matrix")
-            st.write(cosine_matrix)
+                st.write("### Similarity Matrix")
+                st.write(cosine_matrix)
 
-            # Combine similarity data
-            for row_idx, row in enumerate(cosine_matrix):
-                combined_similarity_data.append({
-                    "keyword": keyword,
-                    "location_code": location_code_list[row_idx % len(location_code_list)],
-                    **{f"similarity_{col_idx + 1}": value for col_idx, value in enumerate(row)}
-                })
+                # Combine similarity data
+                for row_idx, row in enumerate(cosine_matrix):
+                    combined_similarity_data.append({
+                        "keyword": keyword,
+                        "location_code": location_code_list[row_idx % len(location_code_list)],
+                        **{f"similarity_{col_idx + 1}": value for col_idx, value in enumerate(row)}
+                    })
+            else:
+                st.write("No valid AI overview texts found for similarity computation.")
         else:
             st.write("No AI overview items found in the results.")
 
