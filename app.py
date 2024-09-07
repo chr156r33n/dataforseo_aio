@@ -81,6 +81,10 @@ if st.button("Search"):
                 results = response.json()
                 all_results.append(results)
                 
+                # Debugging: Log the results
+                st.write(f"### Debug: Results for keyword '{keyword}', iteration {i + 1}")
+                st.json(results)
+                
                 # Navigate to tasks[0].result[0].items
                 tasks = results.get('tasks', [])
                 if not tasks:
