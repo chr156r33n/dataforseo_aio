@@ -1,81 +1,126 @@
 import streamlit as st
 import requests
-import base64
 import json
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import pandas as pd
+import base64
 
-st.title("Google Search API with Data for SEO")
+def generate_auth_header(email, api_password):
+    auth_str = f"{email}:{api_password}"
+    auth_bytes = auth_str.encode('utf-8')
+    auth_base64 = base64.b64encode(auth_bytes).decode('utf-8')
+    return f"Basic {auth_base64}"
 
-keywords = st.text_area("Keywords (semicolon-separated)", "bora bora; maldives; hawaii")
-locations = st.text_area("Locations (semicolon-separated)", "2840; 21167; 1012820")  # Example location codes
-google_domain = st.text_input("Google Domain", "google.com")
+st.title("Google Search API with DataForSEO")
+
+keywords = st.text_area("Keywords (semicolon-separated)", "bora bora; skin flooding trend; longevity research")
+locations = st.text_area("Location Codes (semicolon-separated)", "2840; 21167; 1012820")  # Example location codes
 language_code = st.text_input("Language Code", "en")
-email = st.text_input("Email", "your_email@example.com")
-password = st.text_input("Password", "your_password", type="password")
+device = st.text_input("Device", "desktop")
+os = st.text_input("OS", "windows")
+email = st.text_input("Email", "youremail@address.com")
+api_password = st.text_input("API Password", "api_key_here", type="password")
 num_calls = st.number_input("Number of API Calls per Keyword", min_value=1, max_value=10, value=1)
-debug = st.checkbox("Enable Debugging", False)
 
 if st.button("Search"):
-    # Encode email and password in Base64
-    credentials = f"{email}:{password}"
-    encoded_credentials = base64.b64encode(credentials.encode()).decode()
-
     url = "https://api.dataforseo.com/v3/serp/google/organic/live/advanced"
     keyword_list = [keyword.strip() for keyword in keywords.split(";")]
-    location_list = [int(location.strip()) for location in locations.split(";")]
+    location_code_list = [location.strip() for location in locations.split(";")]
 
-    tasks = []
+    combined_similarity_data = []
+    raw_html_files = []
+
     for keyword in keyword_list:
+        st.write(f"## Results for Keyword: {keyword}")
+        all_results = []
+        answer_boxes = []
+        no_answer_box_indices = []
         for i in range(num_calls):
-            task = {
+            payload = json.dumps([{
                 "keyword": keyword,
-                "location_code": location_list[i % len(location_list)],  # Rotate through location values
+                "location_code": int(location_code_list[i % len(location_code_list)]),  # Rotate through location codes
                 "language_code": language_code,
-                "google_domain": google_domain,
-                "device": "desktop",
-                "os": "windows"
+                "device": device,
+                "os": os
+            }])
+
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": generate_auth_header(email, api_password)
             }
-            tasks.append(task)
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Basic {encoded_credentials}"
-    }
+            try:
+                response = requests.post(url, headers=headers, data=payload)
+                response.raise_for_status()  # Raise an error for bad status codes
+                results = response.json()
+                all_results.append(results)
+                answer_box = results.get('answer_box')
+                raw_html_file = results.get('search_metadata', {}).get('raw_html_file')
+                if raw_html_file:
+                    raw_html_files.append({
+                        "keyword": keyword,
+                        "location_code": location_code_list[i % len(location_code_list)],
+                        "raw_html_file": raw_html_file
+                    })
+                if answer_box:
+                    # Convert answer_box to string
+                    answer_boxes.append(str(answer_box))
+                else:
+                    no_answer_box_indices.append(i + 1)
+            except requests.exceptions.RequestException as e:
+                st.error(f"Error: {e}")
+                break
 
-    payload = json.dumps(tasks)  # Convert tasks list to JSON array
+        if answer_boxes:
+            st.write("### Answer Boxes")
+            for idx, answer_box in enumerate(answer_boxes):
+                st.write(f"**Answer Box {idx + 1}:** {answer_box}\n")
 
-    if debug:
-        st.write(f"### Sending {len(tasks)} tasks to Data for SEO API")
-        st.write(f"Payload: {payload}")
+            # Compute similarity
+            vectorizer = TfidfVectorizer().fit_transform(answer_boxes)
+            vectors = vectorizer.toarray()
+            cosine_matrix = cosine_similarity(vectors)
 
-    try:
-        response = requests.post(url, data=payload, headers=headers)  # Send as JSON array
-        response.raise_for_status()  # Raise an error for bad status codes
-        results = response.json()
-        if debug:
-            st.write("### Response Summary")
-            st.write(f"Status Code: {response.status_code}")
-            st.write(f"Number of Tasks: {len(results.get('tasks', []))}")
+            st.write("### Similarity Matrix")
+            st.write(cosine_matrix)
 
-        # Extract and display item_types and ai_overview
-        for task_result in results.get('tasks', []):
-            result_list = task_result.get('result', [])
-            if result_list:  # Ensure result_list is not None
-                for result in result_list:  # Iterate through all results
-                    item_types = result.get('item_types', [])
-                    st.write(f"Item Types for Task ID {task_result.get('id')}: {item_types}")
+            # Combine similarity data
+            for row_idx, row in enumerate(cosine_matrix):
+                combined_similarity_data.append({
+                    "keyword": keyword,
+                    "location_code": location_code_list[row_idx % len(location_code_list)],
+                    **{f"similarity_{col_idx + 1}": value for col_idx, value in enumerate(row)}
+                })
+        else:
+            st.write("No answer boxes found in the results.")
 
-                    # Check if "ai_overview" is in item_types
-                    if "ai_overview" in item_types:
-                        items = result.get('items', [])
-                        for item in items:
-                            if item.get('type') == 'ai_overview':
-                                st.write(f"AI Overview for Task ID {task_result.get('id')}: {item}")
-                                break  # Stop after finding the first ai_overview
+        if no_answer_box_indices:
+            st.write("### Requests with No Answer Box")
+            st.write(f"No answer box found in the following requests: {no_answer_box_indices}")
 
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error: {e}")
-    except (IndexError, KeyError, TypeError) as e:
-        st.error(f"Unexpected response structure: {e}")
-        if debug:
-            st.write("### Error Details")
-            st.write(f"Response: {results}")
+    # Export combined similarity matrix
+    if combined_similarity_data:
+        df_similarity = pd.DataFrame(combined_similarity_data)
+        csv_similarity = df_similarity.to_csv(index=False)
+        st.download_button(
+            label="Download Combined Similarity Matrix as CSV",
+            data=csv_similarity,
+            file_name='combined_similarity_matrix.csv',
+            mime='text/csv',
+        )
+
+    # Display and export raw HTML files
+    if raw_html_files:
+        st.write("### Raw HTML Files")
+        for entry in raw_html_files:
+            st.write(f"Keyword: {entry['keyword']}, Location Code: {entry['location_code']}, [Raw HTML File]({entry['raw_html_file']})")
+
+        df_raw_html = pd.DataFrame(raw_html_files)
+        csv_raw_html = df_raw_html.to_csv(index=False)
+        st.download_button(
+            label="Download Raw HTML Files as CSV",
+            data=csv_raw_html,
+            file_name='raw_html_files.csv',
+            mime='text/csv',
+        )
