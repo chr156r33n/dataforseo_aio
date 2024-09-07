@@ -5,7 +5,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 import base64
-import os
+import tempfile
 
 def generate_auth_header(email, api_password):
     auth_str = f"{email}:{api_password}"
@@ -29,9 +29,11 @@ def extract_ai_overview_content(ai_overview):
         })
     return content
 
-def save_json_to_file(data, filename):
-    with open(filename, 'w') as f:
+def save_json_to_tempfile(data):
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
+    with open(temp_file.name, 'w') as f:
         json.dump(data, f, indent=4)
+    return temp_file.name
 
 st.title("Google Search API with DataForSEO")
 
@@ -95,10 +97,15 @@ if st.button("Search"):
                 else:
                     no_ai_overview_indices.append(i + 1)
 
-                # Save JSON result to file and create download link
-                json_filename = f'{keyword.replace(" ", "_")}_result_{i + 1}.json'
-                save_json_to_file(results, json_filename)
-                st.markdown(f"[Download JSON Result for {keyword} (Call {i + 1})]({json_filename})")
+                # Save JSON result to temporary file and create download link
+                json_filename = save_json_to_tempfile(results)
+                with open(json_filename, 'rb') as f:
+                    st.download_button(
+                        label=f"Download JSON Result for {keyword} (Call {i + 1})",
+                        data=f,
+                        file_name=f'{keyword.replace(" ", "_")}_result_{i + 1}.json',
+                        mime='application/json',
+                    )
             except requests.exceptions.RequestException as e:
                 st.error(f"Error: {e}")
                 break
