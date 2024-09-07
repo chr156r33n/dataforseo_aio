@@ -14,6 +14,8 @@ def generate_auth_header(email, api_password):
     return f"Basic {auth_base64}"
 
 def extract_ai_overview_content(ai_overview):
+    if ai_overview is None:
+        return None
     content = {
         "title": ai_overview.get("title"),
         "text": ai_overview.get("text"),
@@ -93,7 +95,8 @@ if st.button("Search"):
                 if ai_overview:
                     # Extract and clean ai_overview content
                     cleaned_content = extract_ai_overview_content(ai_overview)
-                    ai_overview_items.append(cleaned_content)
+                    if cleaned_content:
+                        ai_overview_items.append(cleaned_content)
                 else:
                     no_ai_overview_indices.append(i + 1)
 
