@@ -15,8 +15,8 @@ def generate_auth_header(email, api_password):
 st.title("Google Search API with DataForSEO")
 
 keywords = st.text_area("Keywords (semicolon-separated)", "bora bora; skin flooding trend; longevity research")
-locations = st.text_area("Location Codes (semicolon-separated)", "21138; 21139; 21140; 21141; 21142")  # Example location codes
-language_code = st.text_input("Language Code", "en")
+locations = st.text_area("Location Codes (semicolon-separated)", "2840; 21167; 1012820")  # Example location codes
+language_codes = st.text_area("Language Codes (semicolon-separated)", "21138; 21139; 21140; 21141; 21142")  # Example language codes
 device = st.text_input("Device", "desktop")
 os = st.text_input("OS", "windows")
 email = st.text_input("Email", "youremail@address.com")
@@ -27,9 +27,11 @@ if st.button("Search"):
     url = "https://api.dataforseo.com/v3/serp/google/organic/live/advanced"
     keyword_list = [keyword.strip() for keyword in keywords.split(";")]
     location_code_list = [location.strip() for location in locations.split(";")]
+    language_code_list = [language_code.strip() for language_code in language_codes.split(";")]
 
     combined_similarity_data = []
     raw_html_files = []
+    json_results = []
 
     for keyword in keyword_list:
         st.write(f"## Results for Keyword: {keyword}")
@@ -40,7 +42,7 @@ if st.button("Search"):
             payload = json.dumps([{
                 "keyword": keyword,
                 "location_code": int(location_code_list[i % len(location_code_list)]),  # Rotate through location codes
-                "language_code": language_code,
+                "language_code": language_code_list[i % len(language_code_list)],  # Rotate through language codes
                 "device": device,
                 "os": os
             }])
@@ -55,6 +57,11 @@ if st.button("Search"):
                 response.raise_for_status()  # Raise an error for bad status codes
                 results = response.json()
                 all_results.append(results)
+                json_results.append({
+                    "keyword": keyword,
+                    "location_code": location_code_list[i % len(location_code_list)],
+                    "results": results
+                })
                 answer_box = results.get('answer_box')
                 raw_html_file = results.get('search_metadata', {}).get('raw_html_file')
                 if raw_html_file:
@@ -123,4 +130,14 @@ if st.button("Search"):
             data=csv_raw_html,
             file_name='raw_html_files.csv',
             mime='text/csv',
+        )
+
+    # Export JSON results
+    if json_results:
+        json_data = json.dumps(json_results, indent=4)
+        st.download_button(
+            label="Download JSON Results",
+            data=json_data,
+            file_name='json_results.json',
+            mime='application/json',
         )
