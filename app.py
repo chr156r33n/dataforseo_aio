@@ -31,7 +31,6 @@ if st.button("Search"):
 
     combined_similarity_data = []
     raw_html_files = []
-    json_results = []
 
     for keyword in keyword_list:
         st.write(f"## Results for Keyword: {keyword}")
@@ -57,11 +56,6 @@ if st.button("Search"):
                 response.raise_for_status()  # Raise an error for bad status codes
                 results = response.json()
                 all_results.append(results)
-                json_results.append({
-                    "keyword": keyword,
-                    "location_code": location_code_list[i % len(location_code_list)],
-                    "results": results
-                })
                 answer_box = results.get('answer_box')
                 raw_html_file = results.get('search_metadata', {}).get('raw_html_file')
                 if raw_html_file:
@@ -75,6 +69,15 @@ if st.button("Search"):
                     answer_boxes.append(str(answer_box))
                 else:
                     no_answer_box_indices.append(i + 1)
+
+                # Add download button for each JSON result
+                json_data = json.dumps(results, indent=4)
+                st.download_button(
+                    label=f"Download JSON Result for {keyword} (Call {i + 1})",
+                    data=json_data,
+                    file_name=f'{keyword.replace(" ", "_")}_result_{i + 1}.json',
+                    mime='application/json',
+                )
             except requests.exceptions.RequestException as e:
                 st.error(f"Error: {e}")
                 break
@@ -130,14 +133,4 @@ if st.button("Search"):
             data=csv_raw_html,
             file_name='raw_html_files.csv',
             mime='text/csv',
-        )
-
-    # Export JSON results
-    if json_results:
-        json_data = json.dumps(json_results, indent=4)
-        st.download_button(
-            label="Download JSON Results",
-            data=json_data,
-            file_name='json_results.json',
-            mime='application/json',
         )
