@@ -5,6 +5,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 import base64
+import os
 
 def generate_auth_header(email, api_password):
     auth_str = f"{email}:{api_password}"
@@ -27,6 +28,10 @@ def extract_ai_overview_content(ai_overview):
             "text": ref.get("text")
         })
     return content
+
+def save_json_to_file(data, filename):
+    with open(filename, 'w') as f:
+        json.dump(data, f, indent=4)
 
 st.title("Google Search API with DataForSEO")
 
@@ -90,14 +95,10 @@ if st.button("Search"):
                 else:
                     no_ai_overview_indices.append(i + 1)
 
-                # Add download button for each JSON result
-                json_data = json.dumps(results, indent=4)
-                st.download_button(
-                    label=f"Download JSON Result for {keyword} (Call {i + 1})",
-                    data=json_data,
-                    file_name=f'{keyword.replace(" ", "_")}_result_{i + 1}.json',
-                    mime='application/json',
-                )
+                # Save JSON result to file and create download link
+                json_filename = f'{keyword.replace(" ", "_")}_result_{i + 1}.json'
+                save_json_to_file(results, json_filename)
+                st.markdown(f"[Download JSON Result for {keyword} (Call {i + 1})]({json_filename})")
             except requests.exceptions.RequestException as e:
                 st.error(f"Error: {e}")
                 break
@@ -108,7 +109,7 @@ if st.button("Search"):
                 st.write(f"**AI Overview Item {idx + 1}:** {json.dumps(ai_overview, indent=4)}\n")
 
             # Compute similarity
-            ai_overview_texts = [item["text"] for item in ai_overview_items]
+            ai_overview_texts = [item["text"] for item in ai_overview_items if item["text"]]
             vectorizer = TfidfVectorizer().fit_transform(ai_overview_texts)
             vectors = vectorizer.toarray()
             cosine_matrix = cosine_similarity(vectors)
