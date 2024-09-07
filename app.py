@@ -82,7 +82,21 @@ if st.button("Search"):
                 all_results.append(results)
                 
                 # Navigate to tasks[0].result[0].items
-                items = results.get('tasks', [])[0].get('result', [])[0].get('items', [])
+                tasks = results.get('tasks', [])
+                if not tasks:
+                    st.error(f"No tasks found in the response for keyword: {keyword}, iteration: {i + 1}")
+                    continue
+
+                result = tasks[0].get('result', [])
+                if not result:
+                    st.error(f"No result found in the task for keyword: {keyword}, iteration: {i + 1}")
+                    continue
+
+                items = result[0].get('items', [])
+                if not items:
+                    st.error(f"No items found in the result for keyword: {keyword}, iteration: {i + 1}")
+                    continue
+
                 ai_overview = next((item for item in items if item.get('type') == 'ai_overview'), None)
                 
                 raw_html_file = results.get('search_metadata', {}).get('raw_html_file')
@@ -127,6 +141,7 @@ if st.button("Search"):
 
             # Compute similarity
             ai_overview_texts = [item["content"]["text"] for item in ai_overview_items if item["content"]["text"]]
+            ai_overview_texts = [text for text in ai_overview_texts if text]  # Filter out None and empty strings
             if len(ai_overview_texts) > 1:
                 try:
                     vectorizer = TfidfVectorizer().fit_transform(ai_overview_texts)
