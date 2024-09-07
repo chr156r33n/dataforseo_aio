@@ -15,7 +15,7 @@ def generate_auth_header(email, api_password):
 st.title("Google Search API with DataForSEO")
 
 keywords = st.text_area("Keywords (semicolon-separated)", "bora bora; skin flooding trend; longevity research")
-locations = st.text_area("Location Codes (semicolon-separated)", "2840; 21167; 1012820")  # Example location codes
+locations = st.text_area("Location Codes (semicolon-separated)", "21138; 21139; 21140; 21141; 21142")  # Example location codes
 language_code = st.text_input("Language Code", "en")
 device = st.text_input("Device", "desktop")
 os = st.text_input("OS", "windows")
