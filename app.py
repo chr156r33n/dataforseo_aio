@@ -116,6 +116,9 @@ if st.button("Search"):
             except requests.exceptions.RequestException as e:
                 st.error(f"Error: {e}")
                 break
+            except Exception as e:
+                st.error(f"Unexpected error: {e}")
+                break
 
         if ai_overview_items:
             st.write("### AI Overview Items")
