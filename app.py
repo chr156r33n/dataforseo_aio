@@ -96,7 +96,11 @@ if st.button("Search"):
                     # Extract and clean ai_overview content
                     cleaned_content = extract_ai_overview_content(ai_overview)
                     if cleaned_content:
-                        ai_overview_items.append(cleaned_content)
+                        ai_overview_items.append({
+                            "keyword": keyword,
+                            "iteration": i + 1,
+                            "content": cleaned_content
+                        })
                 else:
                     no_ai_overview_indices.append(i + 1)
 
@@ -116,25 +120,28 @@ if st.button("Search"):
         if ai_overview_items:
             st.write("### AI Overview Items")
             for idx, ai_overview in enumerate(ai_overview_items):
-                st.write(f"**AI Overview Item {idx + 1}:** {json.dumps(ai_overview, indent=4)}\n")
+                st.write(f"**AI Overview Item {idx + 1} (Keyword: {ai_overview['keyword']}, Iteration: {ai_overview['iteration']}):** {json.dumps(ai_overview['content'], indent=4)}\n")
 
             # Compute similarity
-            ai_overview_texts = [item["text"] for item in ai_overview_items if item["text"]]
+            ai_overview_texts = [item["content"]["text"] for item in ai_overview_items if item["content"]["text"]]
             if ai_overview_texts:
-                vectorizer = TfidfVectorizer().fit_transform(ai_overview_texts)
-                vectors = vectorizer.toarray()
-                cosine_matrix = cosine_similarity(vectors)
+                try:
+                    vectorizer = TfidfVectorizer().fit_transform(ai_overview_texts)
+                    vectors = vectorizer.toarray()
+                    cosine_matrix = cosine_similarity(vectors)
 
-                st.write("### Similarity Matrix")
-                st.write(cosine_matrix)
+                    st.write("### Similarity Matrix")
+                    st.write(cosine_matrix)
 
-                # Combine similarity data
-                for row_idx, row in enumerate(cosine_matrix):
-                    combined_similarity_data.append({
-                        "keyword": keyword,
-                        "location_code": location_code_list[row_idx % len(location_code_list)],
-                        **{f"similarity_{col_idx + 1}": value for col_idx, value in enumerate(row)}
-                    })
+                    # Combine similarity data
+                    for row_idx, row in enumerate(cosine_matrix):
+                        combined_similarity_data.append({
+                            "keyword": keyword,
+                            "location_code": location_code_list[row_idx % len(location_code_list)],
+                            **{f"similarity_{col_idx + 1}": value for col_idx, value in enumerate(row)}
+                        })
+                except ValueError as e:
+                    st.error(f"Error computing similarity: {e}")
             else:
                 st.write("No valid AI overview texts found for similarity computation.")
         else:
