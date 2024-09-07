@@ -16,7 +16,7 @@ st.title("Google Search API with DataForSEO")
 
 keywords = st.text_area("Keywords (semicolon-separated)", "bora bora; skin flooding trend; longevity research")
 locations = st.text_area("Location Codes (semicolon-separated)", "2840; 21167; 1012820")  # Example location codes
-language_codes = st.text_area("Language Codes (semicolon-separated)", "21138; 21139; 21140; 21141; 21142")  # Example language codes
+language_code = st.text_input("Language Code", "en")
 device = st.text_input("Device", "desktop")
 os = st.text_input("OS", "windows")
 email = st.text_input("Email", "youremail@address.com")
@@ -27,7 +27,6 @@ if st.button("Search"):
     url = "https://api.dataforseo.com/v3/serp/google/organic/live/advanced"
     keyword_list = [keyword.strip() for keyword in keywords.split(";")]
     location_code_list = [location.strip() for location in locations.split(";")]
-    language_code_list = [language_code.strip() for language_code in language_codes.split(";")]
 
     combined_similarity_data = []
     raw_html_files = []
@@ -35,13 +34,13 @@ if st.button("Search"):
     for keyword in keyword_list:
         st.write(f"## Results for Keyword: {keyword}")
         all_results = []
-        answer_boxes = []
-        no_answer_box_indices = []
+        ai_overview_items = []
+        no_ai_overview_indices = []
         for i in range(num_calls):
             payload = json.dumps([{
                 "keyword": keyword,
                 "location_code": int(location_code_list[i % len(location_code_list)]),  # Rotate through location codes
-                "language_code": language_code_list[i % len(language_code_list)],  # Rotate through language codes
+                "language_code": language_code,
                 "device": device,
                 "os": os
             }])
@@ -56,7 +55,7 @@ if st.button("Search"):
                 response.raise_for_status()  # Raise an error for bad status codes
                 results = response.json()
                 all_results.append(results)
-                answer_box = results.get('answer_box')
+                ai_overview = next((item for item in results.get('result', []) if item.get('type') == 'ai_overview'), None)
                 raw_html_file = results.get('search_metadata', {}).get('raw_html_file')
                 if raw_html_file:
                     raw_html_files.append({
@@ -64,11 +63,11 @@ if st.button("Search"):
                         "location_code": location_code_list[i % len(location_code_list)],
                         "raw_html_file": raw_html_file
                     })
-                if answer_box:
-                    # Convert answer_box to string
-                    answer_boxes.append(str(answer_box))
+                if ai_overview:
+                    # Convert ai_overview to string
+                    ai_overview_items.append(str(ai_overview))
                 else:
-                    no_answer_box_indices.append(i + 1)
+                    no_ai_overview_indices.append(i + 1)
 
                 # Add download button for each JSON result
                 json_data = json.dumps(results, indent=4)
@@ -82,13 +81,13 @@ if st.button("Search"):
                 st.error(f"Error: {e}")
                 break
 
-        if answer_boxes:
-            st.write("### Answer Boxes")
-            for idx, answer_box in enumerate(answer_boxes):
-                st.write(f"**Answer Box {idx + 1}:** {answer_box}\n")
+        if ai_overview_items:
+            st.write("### AI Overview Items")
+            for idx, ai_overview in enumerate(ai_overview_items):
+                st.write(f"**AI Overview Item {idx + 1}:** {ai_overview}\n")
 
             # Compute similarity
-            vectorizer = TfidfVectorizer().fit_transform(answer_boxes)
+            vectorizer = TfidfVectorizer().fit_transform(ai_overview_items)
             vectors = vectorizer.toarray()
             cosine_matrix = cosine_similarity(vectors)
 
@@ -103,11 +102,11 @@ if st.button("Search"):
                     **{f"similarity_{col_idx + 1}": value for col_idx, value in enumerate(row)}
                 })
         else:
-            st.write("No answer boxes found in the results.")
+            st.write("No AI overview items found in the results.")
 
-        if no_answer_box_indices:
-            st.write("### Requests with No Answer Box")
-            st.write(f"No answer box found in the following requests: {no_answer_box_indices}")
+        if no_ai_overview_indices:
+            st.write("### Requests with No AI Overview")
+            st.write(f"No AI overview found in the following requests: {no_ai_overview_indices}")
 
     # Export combined similarity matrix
     if combined_similarity_data:
