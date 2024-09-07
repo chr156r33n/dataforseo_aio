@@ -12,6 +12,22 @@ def generate_auth_header(email, api_password):
     auth_base64 = base64.b64encode(auth_bytes).decode('utf-8')
     return f"Basic {auth_base64}"
 
+def extract_ai_overview_content(ai_overview):
+    content = {
+        "title": ai_overview.get("title"),
+        "text": ai_overview.get("text"),
+        "references": []
+    }
+    for ref in ai_overview.get("references", []):
+        content["references"].append({
+            "source": ref.get("source"),
+            "domain": ref.get("domain"),
+            "url": ref.get("url"),
+            "title": ref.get("title"),
+            "text": ref.get("text")
+        })
+    return content
+
 st.title("Google Search API with DataForSEO")
 
 keywords = st.text_area("Keywords (semicolon-separated)", "bora bora; skin flooding trend; longevity research")
@@ -68,8 +84,9 @@ if st.button("Search"):
                         "raw_html_file": raw_html_file
                     })
                 if ai_overview:
-                    # Convert ai_overview to string
-                    ai_overview_items.append(str(ai_overview))
+                    # Extract and clean ai_overview content
+                    cleaned_content = extract_ai_overview_content(ai_overview)
+                    ai_overview_items.append(cleaned_content)
                 else:
                     no_ai_overview_indices.append(i + 1)
 
@@ -88,10 +105,11 @@ if st.button("Search"):
         if ai_overview_items:
             st.write("### AI Overview Items")
             for idx, ai_overview in enumerate(ai_overview_items):
-                st.write(f"**AI Overview Item {idx + 1}:** {ai_overview}\n")
+                st.write(f"**AI Overview Item {idx + 1}:** {json.dumps(ai_overview, indent=4)}\n")
 
             # Compute similarity
-            vectorizer = TfidfVectorizer().fit_transform(ai_overview_items)
+            ai_overview_texts = [item["text"] for item in ai_overview_items]
+            vectorizer = TfidfVectorizer().fit_transform(ai_overview_texts)
             vectors = vectorizer.toarray()
             cosine_matrix = cosine_similarity(vectors)
 
