@@ -13,24 +13,6 @@ def generate_auth_header(email, api_password):
     auth_base64 = base64.b64encode(auth_bytes).decode('utf-8')
     return f"Basic {auth_base64}"
 
-def extract_ai_overview_content(ai_overview):
-    if ai_overview is None:
-        return None
-    content = {
-        "title": ai_overview.get("title"),
-        "text": ai_overview.get("text"),
-        "references": []
-    }
-    for ref in ai_overview.get("references", []):
-        content["references"].append({
-            "source": ref.get("source"),
-            "domain": ref.get("domain"),
-            "url": ref.get("url"),
-            "title": ref.get("title"),
-            "text": ref.get("text")
-        })
-    return content
-
 def save_json_to_tempfile(data):
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
     with open(temp_file.name, 'w') as f:
@@ -111,14 +93,11 @@ if st.button("Search"):
                         "raw_html_file": raw_html_file
                     })
                 if ai_overview:
-                    # Extract and clean ai_overview content
-                    cleaned_content = extract_ai_overview_content(ai_overview)
-                    if cleaned_content:
-                        ai_overview_items.append({
-                            "keyword": keyword,
-                            "iteration": i + 1,
-                            "content": cleaned_content
-                        })
+                    ai_overview_items.append({
+                        "keyword": keyword,
+                        "iteration": i + 1,
+                        "content": ai_overview
+                    })
                 else:
                     no_ai_overview_indices.append(i + 1)
 
@@ -144,7 +123,7 @@ if st.button("Search"):
                 st.write(f"**AI Overview Item {idx + 1} (Keyword: {ai_overview['keyword']}, Iteration: {ai_overview['iteration']}):** {json.dumps(ai_overview['content'], indent=4)}\n")
 
             # Compute similarity
-            ai_overview_texts = [item["content"]["text"] for item in ai_overview_items if item["content"]["text"]]
+            ai_overview_texts = [item["content"]["text"] for item in ai_overview_items if item["content"].get("text")]
             ai_overview_texts = [text for text in ai_overview_texts if text]  # Filter out None and empty strings
             if len(ai_overview_texts) > 1:
                 try:
