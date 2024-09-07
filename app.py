@@ -55,7 +55,11 @@ if st.button("Search"):
                 response.raise_for_status()  # Raise an error for bad status codes
                 results = response.json()
                 all_results.append(results)
-                ai_overview = next((item for item in results.get('result', []) if item.get('type') == 'ai_overview'), None)
+                
+                # Navigate to tasks[0].result[0].items
+                items = results.get('tasks', [])[0].get('result', [])[0].get('items', [])
+                ai_overview = next((item for item in items if item.get('type') == 'ai_overview'), None)
+                
                 raw_html_file = results.get('search_metadata', {}).get('raw_html_file')
                 if raw_html_file:
                     raw_html_files.append({
