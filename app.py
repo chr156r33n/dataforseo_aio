@@ -63,8 +63,8 @@ if st.button("Search"):
                 results = response.json()
                 all_results.append(results)
                 
-                # Debugging: Log the results
-                st.write(f"### Debug: Results for keyword '{keyword}', iteration {i + 1}")
+                # Debugging: Log the entire response
+                st.write(f"### Debug: Full Response for keyword '{keyword}', iteration {i + 1}")
                 st.json(results)
                 
                 # Navigate to tasks[0].result[0].items
@@ -75,8 +75,8 @@ if st.button("Search"):
 
                 result = tasks[0].get('result', [])
                 if not result:
-                    st.error(f"No result found in the task for keyword: {keyword}, iteration: {i + 1}")
-                    continue
+                    st.warning(f"No result found in the task for keyword: {keyword}, iteration: {i + 1}")
+                    continue  # Skip to the next iteration if no result is found
 
                 items = result[0].get('items', [])
                 if not items:
