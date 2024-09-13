@@ -43,7 +43,6 @@ if st.button("Search"):
         all_results = []
         ai_overview_items = []
         no_ai_overview_indices = []
-        
         for i in range(num_calls):
             payload = json.dumps([{
                 "keyword": keyword,
@@ -62,10 +61,10 @@ if st.button("Search"):
                 response = requests.post(url, headers=headers, data=payload)
                 response.raise_for_status()  # Raise an error for bad status codes
                 results = response.json()
-                all_results.append(results)  # Store the results for later use
+                all_results.append(results)
                 
-                # Debugging: Log the entire response
-                st.write(f"### Debug: Full Response for keyword '{keyword}', iteration {i + 1}")
+                # Debugging: Log the results
+                st.write(f"### Debug: Results for keyword '{keyword}', iteration {i + 1}")
                 st.json(results)
                 
                 # Navigate to tasks[0].result[0].items
@@ -76,8 +75,8 @@ if st.button("Search"):
 
                 result = tasks[0].get('result', [])
                 if not result:
-                    st.warning(f"No result found in the task for keyword: {keyword}, iteration: {i + 1}")
-                    continue  # Skip to the next iteration if no result is found
+                    st.error(f"No result found in the task for keyword: {keyword}, iteration: {i + 1}")
+                    continue
 
                 items = result[0].get('items', [])
                 if not items:
@@ -102,10 +101,15 @@ if st.button("Search"):
                 else:
                     no_ai_overview_indices.append(i + 1)
 
-                # Save JSON result to temporary file
+                # Save JSON result to temporary file and create download link
                 json_filename = save_json_to_tempfile(results)
-                all_results.append(json_filename)  # Store the filename for later use
-
+                with open(json_filename, 'rb') as f:
+                    st.download_button(
+                        label=f"Download JSON Result for {keyword} (Call {i + 1})",
+                        data=f,
+                        file_name=f'{keyword.replace(" ", "_")}_result_{i + 1}.json',
+                        mime='application/json',
+                    )
             except requests.exceptions.RequestException as e:
                 st.error(f"Error: {e}")
                 break
@@ -173,13 +177,3 @@ if st.button("Search"):
             file_name='raw_html_files.csv',
             mime='text/csv',
         )
-
-    # Create download buttons for JSON results
-    for idx, json_filename in enumerate(all_results):
-        with open(json_filename, 'rb') as f:
-            st.download_button(
-                label=f"Download JSON Result for {keyword} (Call {idx + 1})",
-                data=f,
-                file_name=f'{keyword.replace(" ", "_")}_result_{idx + 1}.json',
-                mime='application/json',
-            )
