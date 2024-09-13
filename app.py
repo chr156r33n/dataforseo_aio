@@ -43,6 +43,7 @@ if st.button("Search"):
         all_results = []
         ai_overview_items = []
         no_ai_overview_indices = []
+        
         for i in range(num_calls):
             payload = json.dumps([{
                 "keyword": keyword,
@@ -61,7 +62,7 @@ if st.button("Search"):
                 response = requests.post(url, headers=headers, data=payload)
                 response.raise_for_status()  # Raise an error for bad status codes
                 results = response.json()
-                all_results.append(results)
+                all_results.append(results)  # Store the results for later use
                 
                 # Debugging: Log the entire response
                 st.write(f"### Debug: Full Response for keyword '{keyword}', iteration {i + 1}")
@@ -101,15 +102,10 @@ if st.button("Search"):
                 else:
                     no_ai_overview_indices.append(i + 1)
 
-                # Save JSON result to temporary file and create download link
+                # Save JSON result to temporary file
                 json_filename = save_json_to_tempfile(results)
-                with open(json_filename, 'rb') as f:
-                    st.download_button(
-                        label=f"Download JSON Result for {keyword} (Call {i + 1})",
-                        data=f,
-                        file_name=f'{keyword.replace(" ", "_")}_result_{i + 1}.json',
-                        mime='application/json',
-                    )
+                all_results.append(json_filename)  # Store the filename for later use
+
             except requests.exceptions.RequestException as e:
                 st.error(f"Error: {e}")
                 break
@@ -177,3 +173,13 @@ if st.button("Search"):
             file_name='raw_html_files.csv',
             mime='text/csv',
         )
+
+    # Create download buttons for JSON results
+    for idx, json_filename in enumerate(all_results):
+        with open(json_filename, 'rb') as f:
+            st.download_button(
+                label=f"Download JSON Result for {keyword} (Call {idx + 1})",
+                data=f,
+                file_name=f'{keyword.replace(" ", "_")}_result_{idx + 1}.json',
+                mime='application/json',
+            )
